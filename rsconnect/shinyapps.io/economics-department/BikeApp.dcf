@@ -1,0 +1,12 @@
+name: BikeApp
+title: BikeApp
+username: economics-department
+account: economics-department
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 10909099
+bundleId: 8134557
+url: https://economics-department.shinyapps.io/BikeApp/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE

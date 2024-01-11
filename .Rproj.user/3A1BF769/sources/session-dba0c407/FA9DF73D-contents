@@ -1,0 +1,50 @@
+---
+title: "README"
+output: html_document
+date: "2024-01-11"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Bike Sharing Data Analysis Shiny App
+
+## Introduction
+This repository contains a Shiny application designed to explore and analyze bike sharing data. The app offers an interactive platform for visualizing various aspects of bike usage, including trends, weather impact, and predictive modeling.
+
+## Features
+### Trend Exploration
+Insights into seasonal, yearly, and hourly bike rental trends, including an analysis of holidays vs regular days and a 20-day moving average visualization.
+
+### Statistical Exploration
+Detailed statistical analysis featuring average and standard deviation calculations for bike usage per month, season, and hour. Includes boxplots and correlation analyses.
+
+### Usage Patterns Exploration
+Examination of bike rental patterns by user type, including weekly and seasonal variations. Additional visualizations for the proportion of rentals by user type and hourly usage patterns by weather conditions.
+
+### Weather Impact Exploration
+Analysis of how different weather conditions affect bike rentals with interactive plots.
+
+### Hypothesis Testing
+Investigates several hypotheses such as the impact of clear vs adverse weather, holidays vs non-holidays, and yearly differences on bike rentals.
+
+### Predictive Modeling
+Advanced modeling techniques, including GAM, ARIMA, and Prophet models, for forecasting bike rental trends.
+
+## Installation
+
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

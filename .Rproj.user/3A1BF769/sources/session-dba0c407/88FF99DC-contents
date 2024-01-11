@@ -1,0 +1,527 @@
+# Load the required packages
+if (!require("shiny")) install.packages("shiny")
+if (!require("ggplot2")) install.packages("ggplot2")
+if (!require("dplyr")) install.packages("dplyr")
+if (!require("tidyr")) install.packages("tidyr")
+if (!require("caret")) install.packages("caret")
+if (!require("randomForest")) install.packages("randomForest")
+if (!require("nnet")) install.packages("nnet")
+if (!require("plotly")) install.packages("plotly")
+if (!require("readr")) install.packages("readr")
+if (!require("forecast")) install.packages("forecast")
+if (!require("zoo")) install.packages("zoo")
+if (!require("stats")) install.packages("stats")
+if (!require("mgcv")) install.packages("mgcv")
+if (!require("randomForest")) install.packages("randomForest")
+if (!require("nnet")) install.packages("nnet")
+if (!require("forecast")) install.packages("forecast")
+if (!require("prophet")) install.packages("prophet")
+library(mgcv)
+library(randomForest)
+library(nnet)
+library(forecast)
+library(prophet)
+library(shiny)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(caret)
+library(randomForest)
+library(nnet)
+library(plotly)
+library(readr)
+library(forecast)
+library(zoo)
+library(stats)
+library(utils)
+library(dplyr)
+library(ggplot2)
+library(corrplot)
+
+
+
+# 1 - Download and Unzip the Dataset
+url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/00275/Bike-Sharing-Dataset.zip"
+download.file(url, destfile = "Bike-Sharing-Dataset.zip")
+unzip("Bike-Sharing-Dataset.zip", exdir = "Bike_Sharing_Data")
+
+# 2 - Read the Data
+hour_data <- read_csv("Bike_Sharing_Data/hour.csv")
+day_data <- read_csv("Bike_Sharing_Data/day.csv")
+head(hour_data)
+head(day_data)
+
+# Data Preprocessing
+day_data$date <- as.Date(day_data$dteday)
+day_data$year <- year(day_data$date)
+day_data$month <- month(day_data$date)
+hour_data$date <- as.Date(hour_data$dteday)
+hour_data$hour <- hour_data$hr
+
+# Converting factors
+day_data$season <- factor(day_data$season, levels = 1:4, labels = c("Spring", "Summer", "Fall", "Winter"))
+day_data$yr <- factor(day_data$yr, labels = c("2011", "2012"))
+day_data$holiday <- factor(day_data$holiday, labels = c("No", "Yes"))
+day_data$weekday <- factor(day_data$weekday, labels = c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+
+# Basic Analysis and Visualizations
+# Seasonal Variation in Bike Rentals
+p1 <- ggplot(day_data, aes(x = season, y = cnt)) +
+  geom_boxplot() +
+  labs(title = "Seasonal Variation in Bike Rentals", x = "Season", y = "Total Rentals")
+ggplotly(p1)
+
+# Yearly Trend in Bike Rentals
+p2 <- ggplot(day_data, aes(x = date, y = cnt, group = year)) +
+  geom_line() +
+  labs(title = "Yearly Trend in Bike Rentals", x = "Date", y = "Total Rentals")
+ggplotly(p2)
+
+# Hourly Trend in Bike Rentals
+p3 <- ggplot(hour_data, aes(x = hour, y = cnt)) +
+  geom_line(stat = "summary", fun = "mean") +
+  labs(title = "Hourly Trend in Bike Rentals", x = "Hour of Day", y = "Average Rentals")
+ggplotly(p3)
+
+# Bike Rentals: Holidays vs Regular Days
+p4 <- ggplot(day_data, aes(x = holiday, y = cnt)) +
+  geom_boxplot() +
+  labs(title = "Bike Rentals: Holidays vs Regular Days", x = "Holiday", y = "Total Rentals")
+ggplotly(p4)
+
+# Calculating 20-day Moving Average
+day_data$ma20 <- stats::filter(day_data$cnt, rep(1/20, 20), sides = 2)
+
+# Plotting 20-Day Moving Average
+p5 <- ggplot(day_data, aes(x = dteday, y = cnt)) +
+  geom_line(color = 'lightblue') +
+  geom_line(aes(y = ma20), color = 'red') +
+  labs(title = '20-Day Moving Average of Bike Rentals', x = 'Date', y = 'Total Rentals')
+ggplotly(p5)
+
+########################################################
+# Summarize average rentals per hour
+hourly_avg <- hour_data %>%
+  group_by(hour) %>%
+  summarize(avg_rentals = mean(cnt))
+
+# Plot average bike rentals per hour
+p6 <- ggplot(hourly_avg, aes(x = hour, y = avg_rentals)) +
+  geom_line() +
+  labs(title = "Average Bike Rentals per Hour", x = "Hour of Day", y = "Average Rentals")
+ggplotly(p6)
+
+# Analysis of Bike Usage Between Subscribers and Casual Riders
+user_type_summary <- day_data %>%
+  group_by(user_type = if_else(casual > registered, "Casual", "Registered")) %>%
+  summarize(count = sum(cnt))
+
+
+# Bike Rental Patterns by User Type
+hour_data %>%
+  mutate(hour = as.factor(hour)) %>%
+  gather(key = "user_type", value = "count", casual, registered) %>%
+  ggplot(aes(x = hour, y = count, fill = user_type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Bike Rental Patterns by User Type", x = "Hour of Day", y = "Number of Rentals") ->
+  p9
+ggplotly(p9)
+
+# Weekly Bike Rental Patterns
+p10 <- ggplot(hour_data, aes(x = weekday, y = cnt)) +
+  geom_line(stat = "summary", fun = "mean") +
+  labs(title = "Weekly Bike Rental Patterns", x = "Day of Week", y = "Average Rentals")
+ggplotly(p10)
+
+# Seasonal Bike Rental Patterns by User Type
+day_data %>%
+  gather(key = "user_type", value = "count", casual, registered) %>%
+  ggplot(aes(x = season, y = count, fill = user_type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Seasonal Bike Rental Patterns by User Type", x = "Season", y = "Number of Rentals") ->
+  p11
+ggplotly(p11)
+
+# Impact of Temperature on Bike Rentals
+p12 <- ggplot(day_data, aes(x = temp, y = cnt)) +
+  geom_point(aes(color = temp)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Impact of Temperature on Bike Rentals", x = "Normalized Temperature", y = "Total Rentals")
+ggplotly(p12)
+
+
+# Relationship Between Humidity and Bike Rentals
+p14 <- ggplot(day_data, aes(x = hum, y = cnt)) +
+  geom_point(aes(color = hum)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Relationship Between Humidity and Bike Rentals", x = "Normalized Humidity", y = "Total Rentals")
+ggplotly(p14)
+
+# Effect of Windspeed on Bike Rentals
+p15 <- ggplot(day_data, aes(x = windspeed, y = cnt)) +
+  geom_point(aes(color = windspeed)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Effect of Windspeed on Bike Rentals", x = "Normalized Windspeed", y = "Total Rentals")
+ggplotly(p15)
+
+# Statistical Tests and Visualizations
+
+# Clear vs Adverse Weather
+#t_test_weather <- t.test(cnt ~ weather_type, data = day_data)
+#print(t_test_weather)
+#p16 <- ggplot(day_data, aes(x = weather_type, y = cnt, fill = weather_type)) +
+#  geom_boxplot() +
+#  labs(title = "Bike Rentals: Clear vs Adverse Weather", x = "Weather Type", y = "Total Rentals")
+#ggplotly(p16)
+
+# Holidays vs Non-Holidays
+t_test_holiday <- t.test(cnt ~ holiday, data = day_data)
+print(t_test_holiday)
+p17 <- ggplot(day_data, aes(x = holiday, y = cnt, fill = holiday)) +
+  geom_boxplot() +
+  labs(title = "Bike Rentals: Holidays vs Non-Holidays", x = "Holiday", y = "Total Rentals")
+ggplotly(p17)
+
+# Year 2011 vs 2012
+t_test_year <- t.test(cnt ~ yr, data = day_data)
+print(t_test_year)
+p18 <- ggplot(day_data, aes(x = yr, y = cnt, fill = yr)) +
+  geom_boxplot() +
+  labs(title = "Bike Rentals: 2011 vs 2012", x = "Year", y = "Total Rentals")
+ggplotly(p18)
+
+# Seasonal Analysis
+anova_seasons <- aov(cnt ~ season, data = day_data)
+print(anova_seasons)
+p19 <- ggplot(day_data, aes(x = season, y = cnt, fill = season)) +
+  geom_boxplot() +
+  labs(title = "Bike Rentals Across Different Seasons", x = "Season", y = "Total Rentals")
+ggplotly(p19)
+
+# Casual vs Registered Users
+#t_test_users <- t.test(day_data$total_casual, day_data$total_registered)
+#print(t_test_users)
+#p20 <- ggplot(day_data, aes(x = factor(1), y = total_casual, fill = "Casual")) +
+#  geom_boxplot() +
+#  geom_boxplot(aes(y = total_registered, fill = "Registered")) +
+#  labs(title = "Comparison of Bike Rentals: Registered vs Casual Users", x = "", y = "Total Rentals")
+#ggplotly(p20)
+
+######################################################################
+
+# Aggregate data by month
+monthly_data <- day_data %>%
+  group_by(year, month) %>%
+  summarize(total_cnt = sum(cnt, na.rm = TRUE))
+
+# Ensure the data is ordered correctly
+monthly_data <- monthly_data %>% arrange(year, month)
+
+# Convert to ts (time series) object
+# Assuming the dataset starts from January of the first year and ends in December of the last year
+start_year <- min(monthly_data$year)
+end_year <- max(monthly_data$year)
+monthly_ts <- ts(monthly_data$total_cnt, start = c(start_year, 1), frequency = 12)
+
+# Create month plot
+month_plot <- ggmonthplot(monthly_ts) +
+  labs(title = 'Bike Rentals by Month', x = '', y = 'Total Rentals')
+ggplotly(month_plot)
+
+# Calculating 20-day Moving Average
+day_data$ma20 <- stats::filter(day_data$cnt, rep(1/20, 20), sides = 2)
+
+# Plotting 20-Day Moving Average with ggplot2
+p21 <- ggplot(day_data, aes(x = dteday, y = cnt)) +
+  geom_line(color = 'lightblue') +
+  geom_line(aes(y = ma20), color = 'red') +
+  labs(title = '20-Day Moving Average of Bike Rentals', x = 'Date', y = 'Total Rentals')
+ggplotly(p21)
+
+###################################################################
+
+# A - What are the peak usage times for bike sharing?
+
+# Average bike usage by hour
+avg_usage_by_hour <- hour_data %>% 
+  group_by(hr) %>% 
+  summarise(average_count = mean(cnt))
+
+# Plot
+p22 <- ggplot(avg_usage_by_hour, aes(x = hr, y = average_count)) + 
+  geom_line() +
+  ggtitle("Average Bike Usage by Hour") +
+  xlab("Hour of the Day") +
+  ylab("Average Count")
+# Convert to interactive plot
+ggplotly(p22)
+
+# B - How does weather affect bike sharing usage?
+
+# Bike usage by weather situation
+usage_by_weather <- hour_data %>% 
+  group_by(weathersit) %>% 
+  summarise(average_count = mean(cnt))
+
+# Plot
+p23 <- ggplot(usage_by_weather, aes(x = weathersit, y = average_count, fill = weathersit)) + 
+  geom_bar(stat = "identity") +
+  ggtitle("Bike Usage by Weather Situation") +
+  xlab("Weather Situation") +
+  ylab("Average Count")
+# Convert to interactive plot
+ggplotly(p23)
+
+# C - Are there differences in usage patterns between weekdays and weekends?
+
+# Classify days as weekday or weekend
+hour_data$day_type <- ifelse(hour_data$weekday %in% c('Saturday', 'Sunday'), 'Weekend', 'Weekday')
+
+# Average usage by day type
+avg_usage_by_day_type <- hour_data %>% 
+  group_by(day_type, hr) %>% 
+  summarise(average_count = mean(cnt))
+
+# Plot
+p24 <- ggplot(avg_usage_by_day_type, aes(x = hr, y = average_count, color = day_type)) + 
+  geom_line() +
+  facet_wrap(~day_type) +
+  ggtitle("Weekday vs Weekend Usage Patterns") +
+  xlab("Hour of the Day") +
+  ylab("Average Count")
+# Convert to interactive plot
+ggplotly(p24)
+
+# D - Are there differences in usage patterns between Registered and Casual users?
+
+# Average usage by user type
+avg_usage_by_user_type <- hour_data %>% 
+  group_by(hr) %>% 
+  summarise(average_registered = mean(registered), 
+            average_casual = mean(casual))
+
+# Plot
+p25 <- ggplot(avg_usage_by_user_type) + 
+  geom_line(aes(x = hr, y = average_registered, color = "Registered")) +
+  geom_line(aes(x = hr, y = average_casual, color = "Casual")) +
+  ggtitle("Registered vs Casual Usage Patterns") +
+  xlab("Hour of the Day") +
+  ylab("Average Count")
+# Convert to interactive plot
+ggplotly(p25)
+
+#########################################################
+
+
+# a) Average Number of Bikes Shared Per Day/Month/Season:
+
+# Convert month numbers to abbreviated month names
+day_data$mnth <- factor(day_data$mnth, labels = month.abb)
+
+# Convert season numbers to season names
+seasons_mapping <- c('Winter', 'Spring', 'Summer', 'Fall')
+day_data$season <- factor(day_data$season, labels = seasons_mapping)
+
+# Per Day: Average and Standard Deviation
+avg_sd_per_day <- day_data %>% 
+  summarise(average_count = mean(cnt), sd_count = sd(cnt))
+
+# Per Month: Average and Standard Deviation
+avg_sd_per_month <- day_data %>% 
+  group_by(mnth) %>% 
+  summarise(average_count = mean(cnt), sd_count = sd(cnt))
+
+# Per Season: Average and Standard Deviation
+avg_sd_per_season <- day_data %>% 
+  group_by(season) %>% 
+  summarise(average_count = mean(cnt), sd_count = sd(cnt))
+
+# Print results
+print(avg_sd_per_day)
+print(avg_sd_per_month)
+print(avg_sd_per_season)
+
+# Plot for Month
+p_month <- ggplot(avg_sd_per_month, aes(x = mnth, y = average_count)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  geom_errorbar(aes(ymin = average_count - sd_count, ymax = average_count + sd_count), width = 0.4, color = "red") +
+  ggtitle("Average and Standard Deviation of Bike Usage Per Month") +
+  xlab("Month") +
+  ylab("Average Bike Count")
+print(p_month)
+
+# Plot for Season
+p_season <- ggplot(avg_sd_per_season, aes(x = season, y = average_count)) +
+  geom_bar(stat = "identity", fill = "lightgreen") +
+  geom_errorbar(aes(ymin = average_count - sd_count, ymax = average_count + sd_count), width = 0.4, color = "red") +
+  ggtitle("Average and Standard Deviation of Bike Usage Per Season") +
+  xlab("Season") +
+  ylab("Average Bike Count")
+print(p_season)
+
+# b) Variability in Bike Sharing Usage:
+
+# Standard deviation and mean by hour
+stats_by_hour <- hour_data %>% 
+  group_by(hr) %>% 
+  summarise(mean = mean(cnt), std_dev = sd(cnt))
+
+# Standard deviation and mean by weather condition
+stats_by_weather <- hour_data %>% 
+  group_by(weathersit) %>% 
+  summarise(mean = mean(cnt), std_dev = sd(cnt))
+
+# Print results
+print(stats_by_hour)
+print(stats_by_weather)
+
+# Plot for Hour
+p_hour <- ggplot(stats_by_hour, aes(x = hr)) +
+  geom_line(aes(y = mean), color = "blue") +
+  geom_errorbar(aes(ymin = mean - std_dev, ymax = mean + std_dev), width = 0.1, color = "red") +
+  ggtitle("Mean and Standard Deviation of Bike Usage by Hour") +
+  xlab("Hour of the Day") +
+  ylab("Bike Count")
+print(p_hour)
+
+# Plot for Weather Condition
+p_weather <- ggplot(stats_by_weather, aes(x = as.factor(weathersit), y = mean)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  geom_errorbar(aes(ymin = mean - std_dev, ymax = mean + std_dev), width = 0.2, color = "red") +
+  ggtitle("Mean and Standard Deviation of Bike Usage by Weather Condition") +
+  xlab("Weather Condition") +
+  ylab("Bike Count")
+print(p_weather)
+
+# c) Outliers in the Data:
+# Boxplot for hourly count
+p_outliers <- ggplot(hour_data, aes(x = as.factor(hr), y = cnt)) +
+  geom_boxplot() +
+  ggtitle("Boxplot of Hourly Bike Count") +
+  xlab("Hour of the Day") +
+  ylab("Bike Count")
+print(p_outliers)
+
+# d) Correlation Analysis:
+# Correlation matrix for numerical variables
+cor_matrix <- cor(hour_data %>% select_if(is.numeric))
+
+# Print correlation matrix
+print(cor_matrix)
+
+# Visualize the correlation matrix (optional)
+if (!require("corrplot")) install.packages("corrplot")
+corrplot(cor_matrix, method = "circle")
+
+
+###########################################################
+
+
+# 6-Modeling
+
+# Common Functions for Evaluation Metrics
+# Function to calculate RMSE
+rmse <- function(actual, predicted) {
+  sqrt(mean((actual - predicted) ^ 2))
+}
+# Function to calculate MAE
+mae <- function(actual, predicted) {
+  mean(abs(actual - predicted))
+}
+
+# 1-GAM (Generalized Additive Model)
+gam_model <- gam(cnt ~ s(temp) + s(hum) + s(windspeed) + factor(season) + factor(yr) + factor(weekday), 
+                 data = day_data, 
+                 family = poisson())
+summary(gam_model)
+plot(gam_model)
+predictions_gam <- predict(gam_model, newdata = day_data, type = "response")
+rmse_gam <- rmse(day_data$cnt, predictions_gam)
+mae_gam <- mae(day_data$cnt, predictions_gam)
+print(paste("GAM - RMSE:", rmse_gam))
+print(paste("GAM - MAE:", mae_gam))
+
+
+# 4-ARIMA
+day_data <- day_data[order(day_data$dteday), ]
+cnt_ts <- ts(day_data$cnt, start = c(year(min(day_data$dteday)), month(min(day_data$dteday))), frequency = 365)
+arima_model <- auto.arima(cnt_ts)
+summary(arima_model)
+forecast_arima <- forecast(arima_model, h = 30) # For example, forecasting the next 30 days
+plot(forecast_arima)
+actual_arima <- cnt_ts
+predicted_arima <- forecast_arima$mean
+len <- min(length(actual_arima), length(predicted_arima))
+actual_arima <- actual_arima[1:len]
+predicted_arima <- predicted_arima[1:len]
+rmse_arima <- rmse(actual_arima, predicted_arima)
+mae_arima <- mae(actual_arima, predicted_arima)
+print(paste("ARIMA - RMSE:", rmse_arima))
+print(paste("ARIMA - MAE:", mae_arima))
+
+# 5-Prophet
+prophet_data <- data.frame(ds = day_data$dteday, y = day_data$cnt)
+m <- prophet(prophet_data)
+future <- make_future_dataframe(m, periods = 365) # Forecasting the next 365 days
+forecast <- predict(m, future)
+plot(m, forecast)
+prophet_plot_components(m, forecast)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Computing average count by weather situation
+hour_data <- hour_data %>%
+  group_by(weathersit) %>%
+  summarise(average_count = mean(cnt))
+
+# Now create the plot
+p23 <- ggplot(hour_data, aes(x = weathersit, y = average_count, fill = weathersit)) + 
+  geom_bar(stat = "identity") +
+  ggtitle("Hourly Bike Usage by Weather Situation") +
+  xlab("Weather Situation") +
+  ylab("Average Count")
+
+# Convert to interactive plot with plotly
+p23_plotly <- ggplotly(p23)
+
+
+p23_plotly
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

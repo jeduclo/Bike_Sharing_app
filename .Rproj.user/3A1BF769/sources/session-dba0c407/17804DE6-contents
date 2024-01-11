@@ -24,13 +24,13 @@ Introduces modeling techniques, including GAM, ARIMA, and Prophet models, for fo
 
 ## Installation
 Clone the repository
-git clone https://github.com/jeduclo/Bike_Sharing_app.git
+git clone [repository URL]
 
 Open the Shiny app in an R environment and run
 
 
 ## shiny app link
-https://economics-department.shinyapps.io/BikeApp/
+
 
 
 ## Usage
