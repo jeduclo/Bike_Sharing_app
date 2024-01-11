@@ -1,0 +1,45 @@
+# Bike Sharing Data Analysis Shiny App
+
+## Introduction
+This repository contains a Shiny application designed to explore and analyze bike sharing data. The application offers a multifaceted approach to understanding bike rental patterns, including trend analysis, statistical exploration, user behavior, and the impact of weather conditions. Basic predictive modeling is also implemented to forecast future trends.
+
+## Features
+### Exploratory Visualization
+Insights into seasonal, yearly, and hourly bike rental trends, including an analysis of holidays vs regular days and a 20-day moving average visualization.
+
+### Statistical Exploration
+Detailed statistical analysis featuring average and standard deviation calculations for bike usage per month, season, and hour. Includes boxplots and correlation analyses.
+
+### Usage Patterns Exploration
+Examination of bike rental patterns by user type, including weekly and seasonal variations. Additional visualizations for the proportion of rentals by user type and hourly usage patterns by weather conditions.
+
+### Weather Impact Exploration
+Analysis of how different weather conditions, such as temperature, humidity, and windspeed, affect bike rentals. This section provides interactive plots for a dynamic exploration of these factors.
+
+### Hypothesis Testing
+Testing: Investigates several hypotheses such as the impact of clear vs adverse weather, holidays vs non-holidays, and yearly differences (2011 vs 2012) on bike rentals. It also includes a comparison of rental patterns between registered and casual users.
+
+### Predictive Modeling
+Introduces modeling techniques, including GAM, ARIMA, and Prophet models, for forecasting bike rental trends.
+
+## Installation
+Clone the repository
+git clone [repository URL]
+
+Open the Shiny app in an R environment and run
+
+
+## shiny app link
+
+
+
+## Usage
+Navigate through different tabs in the app to explore various analyses and visualizations.
+
+## Data Source
+The data used in this app is sourced from the UCI Machine Learning Repository's Bike Sharing Dataset.
+
+
+
+
+
